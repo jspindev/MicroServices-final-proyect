@@ -1,0 +1,105 @@
+services:
+ naming-server:
+  image: docker.io/library/finalexercise-naming-server:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8761:8761"
+  networks:
+   - api-network
+
+ order-service:
+  image: docker.io/library/finalexercise-order-service:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8200:8200"
+  networks:
+   - api-network
+  depends_on:
+   - naming-server
+   - mysql 
+  environment:
+   EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+   MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans 
+
+ inventory-service:
+  image: docker.io/library/finalexercise-inventory-service:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8150:8150"
+  networks:
+   - api-network
+  depends_on:
+   - naming-server
+   - mysql   
+  environment:
+   EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+   MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans    
+
+ product-service:
+  image: docker.io/library/finalexercise-product-service:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8100:8100"
+  networks:
+   - api-network
+  depends_on:
+   - naming-server
+   - mongodb
+  environment:
+   EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+   MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans    
+
+ config-server:
+  image: docker.io/library/finalexercise-config-server:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8888:8888"
+  networks:
+   - api-network
+
+ api-gateway:
+  image: docker.io/library/finalexercise-api-gateway:0.0.1-SNAPSHOT
+  mem_limit: 700m
+  ports:
+   - "8800:8800"
+  networks:
+   - api-network
+  depends_on:
+   - naming-server
+   - mysql   
+  environment:
+   EUREKA.CLIENT.SERVICEURL.DEFAULTZONE: http://naming-server:8761/eureka
+   MANAGEMENT.ZIPKIN.TRACING.ENDPOINT: http://zipkin-server:9411/api/v2/spans    
+
+ zipkin-server:
+  image: openzipkin/zipkin:latest
+  mem_limit: 400m
+  ports:
+   - "9411:9411"
+  networks:
+   - api-network
+  restart: always
+  
+ mysql:
+  image: mysql:8-oracle
+  mem_limit: 400m
+  environment:
+   MYSQL_ROOT_PASSWORD: root
+  ports:
+   - "3306:3306" 
+  networks:
+   - api-network
+  volumes:
+   - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+ 
+ mongodb:
+  image: mongodb/mongodb-community-server:latest
+  mem_limit: 400m
+  ports:
+   - "27017:27017"
+  networks:
+   - api-network
+
+networks:
+ api-network:
+
